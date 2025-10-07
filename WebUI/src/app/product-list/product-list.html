@@ -28,6 +28,28 @@
         </div>
       </div>
     </div>
+    <div class="col-md-6 col-lg-4">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">
+            <i class="bi bi-search"></i> Search Products
+          </h5>
+          <input
+            type="text"
+            class="form-control"
+            placeholder="Search by name or description..."
+            [value]="filterText()"
+            (input)="onFilterChange($any($event.target).value)">
+          @if (filterText()) {
+            <button
+              class="btn btn-sm btn-outline-secondary mt-2 w-100"
+              (click)="onFilterChange('')">
+              Clear Search
+            </button>
+          }
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Products Grid -->
