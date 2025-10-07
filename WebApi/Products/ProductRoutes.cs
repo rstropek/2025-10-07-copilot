@@ -5,76 +5,80 @@ namespace WebApi.Products;
 
 public static class ProductRoutes
 {
-    extension(IEndpointRouteBuilder api)
+    public static IEndpointRouteBuilder MapProductEndpoints(this IEndpointRouteBuilder api)
     {
-        public IEndpointRouteBuilder MapProductEndpoints()
+        var productApi = api.MapGroup("/products");
+
+        productApi.MapGet("/", async (string? category, string? filter) =>
         {
-            var productApi = api.MapGroup("/products");
-
-            productApi.MapGet("/", async (string? category) =>
+            var jsonPath = Path.Combine(AppContext.BaseDirectory, "Products", "hagleitner-products.json");
+            var jsonContent = await File.ReadAllTextAsync(jsonPath);
+            
+            var options = new JsonSerializerOptions
             {
-                var jsonPath = Path.Combine(AppContext.BaseDirectory, "Products", "hagleitner-products.json");
-                var jsonContent = await File.ReadAllTextAsync(jsonPath);
-                
-                var options = new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                };
-                
-                var wrapper = JsonSerializer.Deserialize<ProductWrapper>(jsonContent, options);
-                
-                if (wrapper?.Products == null)
-                {
-                    return Results.Ok(Array.Empty<ProductDto>());
-                }
-
-                var products = wrapper.Products.AsEnumerable();
-                
-                if (!string.IsNullOrWhiteSpace(category))
-                {
-                    products = products.Where(p => p.Category.Equals(category, StringComparison.OrdinalIgnoreCase));
-                }
-
-                var productDtos = products.Select(p => new ProductDto(
-                    p.ProductID,
-                    p.ArticleNumber,
-                    p.ArticleName,
-                    p.Description,
-                    p.Category,
-                    p.Tags
-                )).ToArray();
-
-                return Results.Ok(productDtos);
-            });
-
-            productApi.MapGet("/categories", async () =>
+                PropertyNameCaseInsensitive = true
+            };
+            
+            var wrapper = JsonSerializer.Deserialize<ProductWrapper>(jsonContent, options);
+            
+            if (wrapper?.Products == null)
             {
-                var jsonPath = Path.Combine(AppContext.BaseDirectory, "Products", "hagleitner-products.json");
-                var jsonContent = await File.ReadAllTextAsync(jsonPath);
-                
-                var options = new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                };
-                
-                var wrapper = JsonSerializer.Deserialize<ProductWrapper>(jsonContent, options);
-                
-                if (wrapper?.Products == null)
-                {
-                    return Results.Ok(Array.Empty<string>());
-                }
+                return Results.Ok(Array.Empty<ProductDto>());
+            }
 
-                var categories = wrapper.Products
-                    .Select(p => p.Category)
-                    .Distinct()
-                    .OrderBy(c => c)
-                    .ToArray();
+            var products = wrapper.Products.AsEnumerable();
+            
+            if (!string.IsNullOrWhiteSpace(category))
+            {
+                products = products.Where(p => p.Category.Equals(category, StringComparison.OrdinalIgnoreCase));
+            }
 
-                return Results.Ok(categories);
-            });
+            if (!string.IsNullOrWhiteSpace(filter))
+            {
+                products = products.Where(p => 
+                    p.ArticleName.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
+                    p.Description.Contains(filter, StringComparison.OrdinalIgnoreCase));
+            }
 
-            return api;
-        }
+            var productDtos = products.Select(p => new ProductDto(
+                p.ProductID,
+                p.ArticleNumber,
+                p.ArticleName,
+                p.Description,
+                p.Category,
+                p.Tags
+            )).ToArray();
+
+            return Results.Ok(productDtos);
+        });
+
+        productApi.MapGet("/categories", async () =>
+        {
+            var jsonPath = Path.Combine(AppContext.BaseDirectory, "Products", "hagleitner-products.json");
+            var jsonContent = await File.ReadAllTextAsync(jsonPath);
+            
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+            
+            var wrapper = JsonSerializer.Deserialize<ProductWrapper>(jsonContent, options);
+            
+            if (wrapper?.Products == null)
+            {
+                return Results.Ok(Array.Empty<string>());
+            }
+
+            var categories = wrapper.Products
+                .Select(p => p.Category)
+                .Distinct()
+                .OrderBy(c => c)
+                .ToArray();
+
+            return Results.Ok(categories);
+        });
+
+        return api;
     }
 }
 

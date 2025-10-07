@@ -26,6 +26,7 @@ export class ProductList implements OnInit {
   public products = signal<Product[]>([]);
   public categories = signal<string[]>([]);
   public selectedCategory = signal<string>('');
+  public filterText = signal<string>('');
 
   async ngOnInit(): Promise<void> {
     await this.loadCategories();
@@ -40,8 +41,19 @@ export class ProductList implements OnInit {
 
   private async loadProducts(): Promise<void> {
     const category = this.selectedCategory();
-    const url = category
-      ? `${environment.apiBaseUrl}/products?category=${encodeURIComponent(category)}`
+    const filter = this.filterText();
+    const params = new URLSearchParams();
+    
+    if (category) {
+      params.append('category', category);
+    }
+    
+    if (filter) {
+      params.append('filter', filter);
+    }
+    
+    const url = params.toString()
+      ? `${environment.apiBaseUrl}/products?${params.toString()}`
       : `${environment.apiBaseUrl}/products`;
 
     const result = await firstValueFrom(this.http.get<Product[]>(url));
@@ -50,6 +62,11 @@ export class ProductList implements OnInit {
 
   async onCategoryChange(category: string): Promise<void> {
     this.selectedCategory.set(category);
+    await this.loadProducts();
+  }
+
+  async onFilterChange(filter: string): Promise<void> {
+    this.filterText.set(filter);
     await this.loadProducts();
   }
 }
